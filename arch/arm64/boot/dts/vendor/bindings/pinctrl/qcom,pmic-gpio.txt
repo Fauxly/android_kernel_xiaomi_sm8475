@@ -29,27 +29,6 @@ PMIC's from Qualcomm.
 		    "qcom,pm8150b-gpio"
 		    "qcom,pm6150-gpio"
 		    "qcom,pm6150l-gpio"
-		    "qcom,pm8350-gpio"
-		    "qcom,pm8350b-gpio"
-		    "qcom,pm8350c-gpio"
-		    "qcom,pmk8350-gpio"
-		    "qcom,pmr735a-gpio"
-		    "qcom,pmr735b-gpio"
-		    "qcom,pm7250b-gpio"
-		    "qcom,pm6350-gpio"
-		    "qcom,pm6150l-gpio"
-		    "qcom,pm8450-gpio"
-		    "qcom,pmx65-gpio"
-		    "qcom,pm7325-gpio"
-		    "qcom,pm6450-gpio"
-		    "qcom,pm8550-gpio"
-		    "qcom,pmxr2230-gpio"
-		    "qcom,pm8550b-gpio"
-		    "qcom,pm8550ve-gpio"
-		    "qcom,pm8550vs-gpio"
-		    "qcom,pmk8550-gpio"
-		    "qcom,pmr735d-gpio"
-		    "qcom,pmi632-gpio"
 
 		    And must contain either "qcom,spmi-gpio" or "qcom,ssbi-gpio"
 		    if the device is on an spmi bus or an ssbi bus respectively
@@ -131,17 +110,6 @@ to specify in a pin configuration subnode:
 		    gpio1-gpio12 for pm8150l (hole on gpio7)
 		    gpio1-gpio10 for pm6150
 		    gpio1-gpio12 for pm6150l
-		    gpio1-gpio10 for pm8350
-		    gpio1-gpio8 for pm8350b
-		    gpio1-gpio9 for pm8350c
-		    gpio1-gpio4 for pmk8350
-		    gpio1-gpio4 for pmr735a
-		    gpio1-gpio4 for pmr735b
-		    gpio1-gpio12 for pm7250b
-		    gpio1-gpio9 for pm6350
-		    gpio1-gpio12 for pm6150l
-		    gpio1-gpio4 for pm8450
-		    gpio1-gpio16 for pmx65
 
 - function:
 	Usage: required

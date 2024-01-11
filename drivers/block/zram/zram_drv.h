@@ -2,7 +2,6 @@
  * Compressed RAM block device
  *
  * Copyright (C) 2008, 2009, 2010  Nitin Gupta
- * Copyright (C) 2022 XiaoMi, Inc.
  *               2012, 2013 Minchan Kim
  *
  * This code is released using a dual license strategy: BSD/GPL
@@ -40,7 +39,7 @@
  * The lower ZRAM_FLAG_SHIFT bits is for object size (excluding header),
  * the higher bits is for zram_pageflags.
  */
-#define ZRAM_FLAG_SHIFT (PAGE_SHIFT + 1)
+#define ZRAM_FLAG_SHIFT 24
 
 /* Flags for zram pages (table[page_no].flags) */
 enum zram_pageflags {
@@ -55,15 +54,6 @@ enum zram_pageflags {
 	__NR_ZRAM_PAGEFLAGS,
 };
 
-#define ZRAM_WB_IDLE_SHIFT (__NR_ZRAM_PAGEFLAGS)
-
-#define ZRAM_WB_IDLE_BITS_LEN (4U)
-
-#define ZRAM_WB_IDLE_MIN (1U)
-#define ZRAM_WB_IDLE_MAX (10U)
-
-#define ZRAM_WB_IDLE_DEFAULT ZRAM_WB_IDLE_MIN
-
 /*-- Data structures */
 
 /* Allocated for each disk page */
@@ -73,7 +63,7 @@ struct zram_table_entry {
 		unsigned long element;
 	};
 	unsigned long flags;
-#if defined(CONFIG_ZRAM_MEMORY_TRACKING) || defined(CONFIG_MIUI_ZRAM_MEMORY_TRACKING)
+#ifdef CONFIG_ZRAM_MEMORY_TRACKING
 	ktime_t ac_time;
 #endif
 };
@@ -89,9 +79,6 @@ struct zram_stats {
 	atomic64_t same_pages;		/* no. of same element filled pages */
 	atomic64_t huge_pages;		/* no. of huge pages */
 	atomic64_t pages_stored;	/* no. of pages currently stored */
-#ifdef CONFIG_MIUI_ZRAM_MEMORY_TRACKING
-	atomic64_t origin_pages_max;	/* no. of maximum origin pages stored */
-#endif
 	atomic_long_t max_used_pages;	/* no. of maximum pages stored */
 	atomic64_t writestall;		/* no. of write slow paths */
 	atomic64_t miss_free;		/* no. of missed free */
@@ -99,20 +86,8 @@ struct zram_stats {
 	atomic64_t bd_count;		/* no. of pages in backing device */
 	atomic64_t bd_reads;		/* no. of reads from backing device */
 	atomic64_t bd_writes;		/* no. of writes from backing device */
-#ifdef CONFIG_MIUI_ZRAM_MEMORY_TRACKING
-	atomic64_t wb_pages_max;	/* no. of max pages in backing device */
-#endif
 #endif
 };
-
-#ifdef CONFIG_MIUI_ZRAM_MEMORY_TRACKING
-struct zram_pages_life {
-	unsigned int time_nr;
-	int *time_list;
-	unsigned long *lifes;
-	struct rcu_head rcu;
-};
-#endif
 
 struct zram {
 	struct zram_table_entry *table;
@@ -149,12 +124,6 @@ struct zram {
 #endif
 #ifdef CONFIG_ZRAM_MEMORY_TRACKING
 	struct dentry *debugfs_dir;
-#endif
-#ifdef CONFIG_MIUI_ZRAM_MEMORY_TRACKING
-	struct zram_pages_life __rcu *pages_life;
-	ktime_t first_time;
-	ktime_t last_time;
-	atomic64_t avg_size;
 #endif
 };
 #endif

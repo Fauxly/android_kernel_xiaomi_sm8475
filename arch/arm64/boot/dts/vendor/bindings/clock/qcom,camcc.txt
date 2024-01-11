@@ -2,19 +2,7 @@ Qualcomm Camera Clock & Reset Controller Binding
 ------------------------------------------------
 
 Required properties :
-- compatible : shall contain
-		"qcom,sdm845-camcc"
-		"qcom,lahaina-camcc"
-		"qcom,lahaina-camcc-v2"
-		"qcom,shima-camcc"
-		"qcom,waipio-camcc"
-		"qcom,waipio-camcc-v2"
-		"qcom,diwali-camcc"
-		"qcom,cape-camcc"
-		"qcom,neo-camcc"
-		"qcom,parrot-camcc"
-		"qcom,anorak-camcc"
-		"qcom,ravelin-camcc"
+- compatible : shall contain "qcom,sdm845-camcc".
 - reg : shall contain base register location and length.
 - #clock-cells : from common clock binding, shall contain 1.
 - #reset-cells : from common reset binding, shall contain 1.
