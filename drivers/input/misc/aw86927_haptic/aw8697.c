@@ -4602,4 +4602,3 @@ int aw8697_ram_init(struct aw8697 *aw8697)
 	return 0;
 }
 
-
