@@ -157,6 +157,7 @@ extern void touch_irq_boost(void);
 #endif
 #ifdef CONFIG_FTS_BOOST
 #define EVENT_INPUT 0x1
+extern void touch_irq_boost(void);
 extern void lpm_disable_for_dev(bool on, char event_dev);
 #endif
 #ifdef CONFIG_FTS_POWERSUPPLY_CB

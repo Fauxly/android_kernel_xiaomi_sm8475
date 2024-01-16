@@ -1,92 +1,73 @@
-#!/usr/bin/env bash
-# shellcheck disable=SC2199
-# shellcheck source=/dev/null
+#!/bin/bash
 #
-# Copyright (C) 2020-22 UtsavBalar1231 <utsavbalar1231@gmail.com>
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Compile script for QuicksilveR kernel
+# Copyright (C) 2020-2021 Adithya R.
 
-if ! [ -d "$HOME/tc/aosp-clang" ]; then
-echo "aosp clang not found! Cloning..."
-if ! git clone -q https://gitlab.com/ThankYouMario/android_prebuilts_clang-standalone.git --depth=1 ~/tc/aosp-clang; then
-echo "Cloning failed! Aborting..."
-exit 1
-fi
+SECONDS=0 # builtin bash timer
+TC_DIR="$HOME/tc/aarch64-linux-gnu-9.3"
+AK3_DIR="$HOME/AnyKernel3"
+DEFCONFIG="vendor/unicorn_defconfig"
+
+ZIPNAME="QuicksilveR-lisa-$(date '+%Y%m%d-%H%M').zip"
+
+if test -z "$(git rev-parse --show-cdup 2>/dev/null)" &&
+   head=$(git rev-parse --verify HEAD 2>/dev/null); then
+	ZIPNAME="${ZIPNAME::-4}-$(echo $head | cut -c1-8).zip"
 fi
 
-if ! [ -d "$HOME/tc/aarch64-linux-gnu-9.3" ]; then
-echo "aarch64-linux-gnu-9.3 not found! Cloning..."
-if ! git clone -q https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-gnu-9.3.git --depth=1 --single-branch ~/tc/aarch64-linux-gnu-9.3; then
-echo "Cloning failed! Aborting..."
-exit 1
-fi
-fi
+MAKE_PARAMS="O=out ARCH=arm64 CC=clang CLANG_TRIPLE=aarch64-linux-gnu- \
+	CROSS_COMPILE=$TC_DIR/bin/aarch64-linux-"
 
-GCC_64_DIR="$HOME/tc/aarch64-linux-gnu-9.3"
-KBUILD_COMPILER_STRING=$($HOME/tc/aosp-clang/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
-KBUILD_LINKER_STRING=$($HOME/tc/aosp-clang/bin/ld.lld --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//' | sed 's/(compatible with [^)]*)//')
-export KBUILD_COMPILER_STRING
-export KBUILD_LINKER_STRING
+export PATH="$TC_DIR/bin:$PATH"
 
-#
-# Enviromental Variables
-#
-
-DATE=$(date '+%Y%m%d-%H%M')
-
-# Set our directory
-OUT_DIR=out/
-
-VERSION="Fauxly-unicorn-${DATE}"
-
-# Export Zip name
-export ZIPNAME="${VERSION}.zip"
-
-# How much kebabs we need? Kanged from @raphielscape :)
-if [[ -z "${KEBABS}" ]]; then
-    COUNT="$(grep -c '^processor' /proc/cpuinfo)"
-    export KEBABS="$((COUNT + 2))"
+if [[ $1 = "-r" || $1 = "--regen" ]]; then
+	make $MAKE_PARAMS $DEFCONFIG savedefconfig
+	cp out/defconfig arch/arm64/configs/$DEFCONFIG
+	echo -e "\nSuccessfully regenerated defconfig at $DEFCONFIG"
+	exit
 fi
 
-echo "Jobs: ${KEBABS}"
+if [[ $1 = "-c" || $1 = "--clean" ]]; then
+	rm -rf out
+	echo "Cleaned output folder"
+fi
 
-ARGS="ARCH=arm64 \
-O=${OUT_DIR} \
-CC=clang \
-LLVM=1 \
-LLVM_IAS=1 \
-CLANG_TRIPLE=aarch64-linux-gnu- \
-CROSS_COMPILE=$GCC_64_DIR/bin/aarch64-linux-android- \
--j${KEBABS}"
+mkdir -p out
+make $MAKE_PARAMS $DEFCONFIG
 
-dts_source=arch/arm64/boot/dts/vendor/qcom
+echo -e "\nStarting compilation...\n"
+make -j$(nproc --all) $MAKE_PARAMS || exit $?
+make -j$(nproc --all) $MAKE_PARAMS INSTALL_MOD_PATH=modules INSTALL_MOD_STRIP=1 modules_install
 
-START=$(date +"%s")
+kernel="out/arch/arm64/boot/Image"
+dtb="out/arch/arm64/boot/dts/vendor/qcom/yupik.dtb"
+dtbo="out/arch/arm64/boot/dts/vendor/qcom/lisa-sm7325-overlay.dtbo"
 
-# Set compiler Path
-export PATH="$HOME/tc/aosp-clang/bin:$PATH"
-export LD_LIBRARY_PATH=${HOME}/tc/aosp-clang/lib64:$LD_LIBRARY_PATH
+if [ ! -f "$kernel" ] || [ ! -f "$dtb" ] || [ ! -f "$dtbo" ]; then
+	echo -e "\nCompilation failed!"
+	exit 1
+fi
 
-echo "------ Starting Compilation ------"
-
-# Make defconfig
-make -j${KEBABS} ${ARGS} vendor/unicorn_defconfig
-
-# Make olddefconfig
-cd ${OUT_DIR} || exit
-make -j${KEBABS} ${ARGS} CC="ccache clang" HOSTCC="ccache gcc" HOSTCXX="cache g++" olddefconfig
-cd ../ || exit
-
-make -j${KEBABS} ${ARGS} CC="ccache clang" HOSTCC="ccache gcc" HOSTCXX="ccache g++" 2>&1 | tee build.log
-
-echo "------ Finishing Build ------"
+echo -e "\nKernel compiled succesfully! Zipping up...\n"
+if [ -d "$AK3_DIR" ]; then
+	cp -r $AK3_DIR AnyKernel3
+	git -C AnyKernel3 checkout lisa &> /dev/null
+elif ! git clone -q https://github.com/likkai/AnyKernel3 -b lisa; then
+	echo -e "\nAnyKernel3 repo not found locally and couldn't clone from GitHub! Aborting..."
+	exit 1
+fi
+cp $kernel AnyKernel3
+cp $dtb AnyKernel3/dtb
+python2 scripts/dtc/libfdt/mkdtboimg.py create AnyKernel3/dtbo.img --page_size=4096 $dtbo
+cp $(find out/modules/lib/modules/5.4* -name '*.ko') AnyKernel3/modules/vendor/lib/modules/
+cp out/modules/lib/modules/5.4*/modules.{alias,dep,softdep} AnyKernel3/modules/vendor/lib/modules
+cp out/modules/lib/modules/5.4*/modules.order AnyKernel3/modules/vendor/lib/modules/modules.load
+sed -i 's/\(kernel\/[^: ]*\/\)\([^: ]*\.ko\)/\/vendor\/lib\/modules\/\2/g' AnyKernel3/modules/vendor/lib/modules/modules.dep
+sed -i 's/.*\///g' AnyKernel3/modules/vendor/lib/modules/modules.load
+rm -rf out/arch/arm64/boot out/modules
+cd AnyKernel3
+zip -r9 "../$ZIPNAME" * -x .git README.md *placeholder
+cd ..
+rm -rf AnyKernel3
+echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
+echo "Zip: $ZIPNAME"
